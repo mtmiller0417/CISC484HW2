@@ -2,20 +2,28 @@ import java.lang.Comparable;
 
 public class Word implements Comparable<Word>{
     String word;
-    int wordCount = 0;
+    int spamCount = 0;
+    int hamCount = 0;
+    double spamProb;
+    double hamProb;
 
-    public Word(String word){
+    public Word(String word, int spam, int ham){
         this.word = word;
-        this.wordCount = 1;
+	this.spamCount += spam;
+	this.hamCount += ham;
     }
 
-    public void increment(){
-        wordCount++;
+    public void incrementS(){
+        spamCount++;
+    }
+
+    public void incrementH(){
+        hamCount++;
     } 
 
     @Override
     public int compareTo(Word word){
-        return this.wordCount - word.wordCount;
+        return this.spamCount - word.spamCount;
     }
 
     @Override
