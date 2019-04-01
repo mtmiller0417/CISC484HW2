@@ -46,6 +46,8 @@ public class Main{
         for(Word w : spamTraining){
             System.out.println(w.toString() + ": " + w.wordCount);
         }
+
+        logReg(spamTraining);
     }
 
     //Loops through a directory convert all its files into Strings
@@ -57,10 +59,6 @@ public class Main{
                 //What to do for each file in the directory; Call concatFile on it and add the string to appropriate arraylist
                 String str[] = concatFile(file.getPath()).split("\\s+");
                 for(String s : str){
-                    /*if(s.substring(s.length()-3, s.length()-1).equals("\n")){
-                        s = s.substring(0, s.length() - 4);
-                        System.out.println(s);
-                    }*/
                     checkWord(s, dataSet);
                 }
                 //dataSet.add(concatFile(file.getPath()));
@@ -80,7 +78,6 @@ public class Main{
             e.printStackTrace();
         }
         return content; // Return the concatonated String
-        //dataSet.add(content);
     }
 
     // Checks to find the word, if it is found, increment the word count; If not found, add it to the arraylist
@@ -97,5 +94,24 @@ public class Main{
             wordList.add(new Word(word));
 
         return flag;
+    }
+
+    public void logReg(ArrayList<Word> data){
+        //Split the data 70 - 30
+        ArrayList<Word> data70 = new ArrayList<Word>();
+        ArrayList<Word> data30 = new ArrayList<Word>();
+        for(int i = 0; i < data.size(); i++){
+            if(i < data.size() * 0.3)
+                data30.add(data.get(i));
+            else    
+                data70.add(data.get(i));
+        }
+        System.out.println("Size of original: " + data.size());
+        System.out.println("Size of data30: " + data30.size() + "  Percentage = " + ((double)data30.size())/((double)data.size()));
+        System.out.println("Size of data70: " + data70.size() + "  Percentage = " + ((double)data70.size())/((double)data.size()));
+
+        //Learn parameters with data70
+
+        //Use data30 to learn good lambda value(treat as validation data)
     }
 }
