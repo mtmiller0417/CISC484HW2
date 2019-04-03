@@ -35,7 +35,14 @@ public class Main{
         trainSpam = new File("dataset 1/train/spam");
         trainHam = new File("dataset 1/train/ham");
         testSpam = new File("dataset 1/test/spam");
-        testHam = new File("dataset 1/test/ham");
+		testHam = new File("dataset 1/test/ham");
+		//Read and use command line arguments if those are used instead
+		if(args.length == 4){
+			trainSpam = new File(args[0]);
+			trainHam = new File(args[1]);
+			testSpam = new File(args[2]);
+			testHam = new File(args[3]);
+		}
 
 	//getting sizes of data sets
 	numtrSpamDocs = trainSpam.listFiles().length;
@@ -115,7 +122,9 @@ public class Main{
         else if(classification == 1){ // HAM
             double sumW1 = 0.0;
             for(int i = 0; i < email.text.size(); i++){
-				sumW1 += Math.log(((trainingData.get(email.index.get(i)).weight) * ((double)email.counts.get(i))));
+				sumW1 += ((trainingData.get(email.index.get(i)).weight) * ((double)email.counts.get(i)));
+				if(sumW1 != 0.0)
+					sumW1 = Math.log(sumW1);
 			}
 
 			//System.out.println("sumW1 = " + sumW1);
@@ -167,7 +176,7 @@ public class Main{
 					//System.out.println("Word: [" + trainingData.get(w).toString() + "] | Indexed Email " + i + " at index " + index);
 
 					if(localIndex > 0)//If the word is in the email
-						sum += ((double)eList.get(i).counts.get(localIndex)) * (eList.get(i).classification - condProb(eList.get(i), -1));
+						sum += ((double)eList.get(i).counts.get(localIndex)) * (eList.get(i).classification - condProb(eList.get(i), 1));
 				}
 				trainingData.get(w).weight += (stepSize * (sum));// - (lambda/2)*(Math.pow(trainingData.get(w).weight,2));
 			}
