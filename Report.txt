@@ -1,0 +1,20 @@
+MULTINOMIAL NAIVE BAYES
+Dataset 1
+Accuracy on spam test set =  90.769%
+Accuracy on ham test set = 96.264%
+Accuracy on full test set = 94.769%
+
+Dataset 2
+Accuracy on spam test set =  87.248%
+Accuracy on ham test set = 97.126%
+Accuracy on full test set = 94.165%
+
+Dataset 3
+Accuracy on spam test set =  96.675%
+Accuracy on ham test set = 57.471%
+Accuracy on full test set = 78.214%
+
+PERCEPTRON //weights are initialized to random values so accuracy may vary slightly
+Dataset 1 accuracy on test set = 90.795%
+Dataset 2 accuracy on test set = 93.158%
+Dataset 3 accuracy on test set = 88.633%

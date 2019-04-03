@@ -32,9 +32,9 @@ public class Main{
 
     public Main(String[] args){
         //Load in folders(directories) that hold all the data(txt files)
-        trainSpam = new File("dataset 1/train/spam");
-        trainHam = new File("dataset 1/train/ham");
-        testSpam = new File("dataset 1/test/spam");
+        trainSpam = new File("dataset 3/train/spam");
+        trainHam = new File("dataset 3/train/ham");
+        testSpam = new File("dataset 3/test/spam");
 		testHam = new File("dataset 1/test/ham");
 		//Read and use command line arguments if those are used instead
 		if(args.length == 4){
@@ -54,29 +54,29 @@ public class Main{
 	loopDir(trainHam, trainingData, -1);
 
 	//Using c = 1 for spam and c = -1 for ham
-	//trainMultinomial(trainingData);
-	//testNaiveBayes();	
+	trainMultinomial(trainingData);
+	testNaiveBayes();	
 
-	createEmailList(trainSpam, spamEmails, 1);
+	/*createEmailList(trainSpam, spamEmails, 1);
 	createEmailList(trainHam, hamEmails, -1);
 	trainWeightsLogReg();
 	regularizeWeights(.05);
 
 	for(Word wrd : trainingData){
 		System.out.println(wrd.weight);
-	}
+	}*/
 
-	//createEmailList(trainSpam, spamEmails, 1);
-	//createEmailList(trainHam, hamEmails, -1);
-	//trainWeightsPerceptron();
+	createEmailList(trainSpam, spamEmails, 1);
+	createEmailList(trainHam, hamEmails, -1);
+	trainWeightsPerceptron();
 
 	//for(Word wrd : trainingData){
 	//	System.out.println(wrd.weight);
 	//}
 
-	//createEmailList(testSpam, testEmails, 1);
-	//createEmailList(testHam, testEmails, -1);
-	//testPerceptron();
+	createEmailList(testSpam, testEmails, 1);
+	createEmailList(testHam, testEmails, -1);
+	testPerceptron();
     }
 
     public void testNaiveBayes(){
