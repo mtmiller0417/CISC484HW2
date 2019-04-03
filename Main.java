@@ -2,7 +2,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
-//import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,15 +10,21 @@ public class Main{
 
     //ArrayList of Words, alternative to bunches of Strings
     ArrayList<Word> trainingData = new ArrayList<Word>();
-
     ArrayList<Word> spamTesting = new ArrayList<Word>();
     ArrayList<Word> hamTesting = new ArrayList<Word>();
     
     //Files(directories) that contain the data files
     File testSpam, testHam, trainSpam, trainHam;
 
+    //Emails from the training sets and test set
+    ArrayList<Email> spamEmails = new ArrayList<Email>();
+    ArrayList<Email> hamEmails = new ArrayList<Email>();
+    ArrayList<Email> testEmails = new ArrayList<Email>();
+
     //Sizes
     int numtrDocs, numtrSpamDocs, numtrHamDocs;
+
+    double w0 = 50; //bias term for perceptron
 
     public static void main(String[] args){
         Main main = new Main(args);
@@ -37,32 +42,117 @@ public class Main{
 	numtrHamDocs = trainHam.listFiles().length;
 	numtrDocs = numtrSpamDocs + numtrHamDocs;
 
-        loopDir(trainSpam, trainingData, 0);
-	loopDir(trainHam, trainingData, 1);
-        
-	/*System.out.println("Number of unique words: " + spamTraining.size());
-        Collections.sort(trainingData);
-        for(Word w : spamTraining){
-            System.out.println(w.toString() + ": " + w.wordCount);
-        }*/
+        loopDir(trainSpam, trainingData, 1);
+	loopDir(trainHam, trainingData, -1);
 
-	//Using c = 0 for spam and c = 1 for ham
+	//Using c = 1 for spam and c = -1 for ham
 	trainMultinomial(trainingData);
-	int correctSpam = testNB(testSpam, 0);
+	testNaiveBayes();	
+
+	createEmailList(trainSpam, spamEmails, 1);
+	createEmailList(trainHam, hamEmails, -1);
+	trainWeightsPerceptron();
+
+	createEmailList(testSpam, testEmails, 1);
+	createEmailList(testHam, testEmails, -1);
+	testPerceptron();
+    }
+
+    public void testNaiveBayes(){
+	System.out.println("\nMULTINOMIAL NAIVE BAYES");
+	int correctSpam = testNB(testSpam, 1);
 	double ts = (double) testSpam.listFiles().length;
 	double spamAccuracy = correctSpam/ts;
-	System.out.println("Accuracy on Spam Test Set " + spamAccuracy);
+	System.out.println("Accuracy on Spam Test Set = " + spamAccuracy);
 	
-	int correctHam = testNB(testHam, 1);
+	int correctHam = testNB(testHam, -1);
 	double th = (double) testHam.listFiles().length;
 	double hamAccuracy = correctHam/th;
-	System.out.println("Accuracy on Ham Test Set " + hamAccuracy);
+	System.out.println("Accuracy on Ham Test Set = " + hamAccuracy);
 
 	int totalDocs = testSpam.listFiles().length + testHam.listFiles().length;
 	double td = (double) totalDocs;
 	double accuracy = (correctHam + correctSpam)/td;
 	System.out.println("Accuracy = " + accuracy);
-	
+	System.out.println();
+    }
+
+    public void testPerceptron(){
+	int count = 0;
+	for(Email e: testEmails){
+		int res = currentPrediction(e);
+		if (res == e.classification)
+			count++;
+	}
+	double s = (double) testEmails.size();
+	double accuracy = count/s;
+	System.out.println("\nPERCEPTRON ACCURACY = " + accuracy);
+    }
+
+    public void trainWeightsPerceptron(){
+	int countCorrect = 0;
+	ArrayList<Email> eList = new ArrayList<Email>(); //list of all emails
+
+	//alternating between spam and ham emails
+	int k = 0;
+	for(; k < spamEmails.size(); k++){
+		eList.add(spamEmails.get(k));
+		if (k < hamEmails.size())
+			eList.add(hamEmails.get(k));
+	}
+	if (k < hamEmails.size()){
+		for(; k<hamEmails.size(); k++)
+			eList.add(hamEmails.get(k));
+	}
+
+	boolean converge = false;	
+	while(!converge){
+		for(Email e : eList){
+			int res = currentPrediction(e); //get prediction based on current weights
+			if (res != e.classification){ //if not correct, update weights
+				w0 = w0 + (e.classification - res);
+				for(int i = 0; i < e.text.size(); i++){
+					int x = e.counts.get(i);
+					int ind = e.index.get(i);
+					if (ind != -1) {
+						Word w = trainingData.get(ind);
+						w.weight = w.weight + (e.classification - res)*x;
+					}
+				}
+			}
+			
+		} 
+		countCorrect = 0; //number of correctly classified emails based on current weights
+		for(Email e : eList){
+			int res = currentPrediction(e);
+			if (res == e.classification)
+				countCorrect++;
+		}
+
+		if (countCorrect == eList.size()) //if 100% accuracy on training set
+			converge = true;
+	}
+    }
+
+    public int currentPrediction(Email e){
+	double sum = 0;
+	for(int i = 0; i < e.text.size(); i++){
+		int x = e.counts.get(i);
+		int ind = e.index.get(i);
+		double wi;
+		if (ind != -1) //only -1 if it doesn't occur in training set
+			wi = trainingData.get(ind).weight;
+		else
+			wi = 0;
+		sum = sum + (x*wi);
+	}
+	sum += w0;
+	int res;
+	if (sum > 0)
+		res = 1; //classify as spam
+	else
+		res = -1;
+	return res;
     }
 
     public void trainMultinomial(ArrayList<Word> data){
@@ -117,11 +207,25 @@ public class Main{
 	}
 	
 	if (scoreSpam > scoreHam)
-		return 0; 
+		return 1; 
 	else 
-		return 1;
+		return -1;
 
     }
+
+    
+    public void createEmailList(File directory, ArrayList<Email> elist, int c){
+	File[] fileNames = directory.listFiles();
+	for(File file : fileNames){
+            try {
+                String str[] = concatFile(file.getPath()).split("\\s+");
+		elist.add(new Email(str, trainingData, c));
+	    } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     //Loops through a directory convert all its files into Strings
     public void loopDir(File directory, ArrayList<Word> dataSet, int c){
         File[] fileNames = directory.listFiles();
@@ -131,13 +235,8 @@ public class Main{
                 //What to do for each file in the directory; Call concatFile on it and add the string to appropriate arraylist
                 String str[] = concatFile(file.getPath()).split("\\s+");
                 for(String s : str){
-                    /*if(s.substring(s.length()-3, s.length()-1).equals("\n")){
-                        s = s.substring(0, s.length() - 4);
-                        System.out.println(s);
-                    }*/
                     checkWord(s, dataSet, c);
                 }
-                //dataSet.add(concatFile(file.getPath()));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -154,7 +253,6 @@ public class Main{
             e.printStackTrace();
         }
         return content; // Return the concatonated String
-        //dataSet.add(content);
     }
 
     // Checks to find the word, if it is found, increment the word count; If not found, add it to the arraylist
@@ -163,18 +261,18 @@ public class Main{
         for(Word w : wordList){
             if(w.toString().equals(word)){
                 flag = true;
-		if (c == 0)
+		if (c == 1)
                 	w.incrementS();//Increment the wordCount of the word
-		else if (c == 1)
+		else if (c == -1)
 			w.incrementH();
             }
         }
         //If the wors was not found in the list, add it to the list
         if(!flag) {
            
-	    if (c == 0)
+	    if (c == 1)
                 	 wordList.add(new Word(word, 1, 0));
-	    else if (c == 1)
+	    else if (c == -1)
 			wordList.add(new Word(word, 0, 1));
 	}
         return flag;
