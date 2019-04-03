@@ -8,9 +8,9 @@ public class Email{
 
 	public Email(String[] str, ArrayList<Word> trainingData, int c){
 		this.classification = c; 
-		this.text = new ArrayList<String>();
-		this.counts = new ArrayList<Integer>();
-		this.index = new ArrayList<Integer>();
+		this.text = new ArrayList<String>();    // String of each unique word in the email	
+		this.counts = new ArrayList<Integer>(); // Frequency of each word in the email
+		this.index = new ArrayList<Integer>();  // Index of each word in big trainingData ArrayList
 
 		for(String s : str){ //for each word in the email
 			int i = 0;

@@ -42,20 +42,34 @@ public class Main{
 	numtrHamDocs = trainHam.listFiles().length;
 	numtrDocs = numtrSpamDocs + numtrHamDocs;
 
-        loopDir(trainSpam, trainingData, 1);
+	//Read all words in spam and ham folders respectively and make them into one big ArrayList<Word> each
+    loopDir(trainSpam, trainingData, 1);
 	loopDir(trainHam, trainingData, -1);
 
 	//Using c = 1 for spam and c = -1 for ham
-	trainMultinomial(trainingData);
-	testNaiveBayes();	
+	//trainMultinomial(trainingData);
+	//testNaiveBayes();	
 
 	createEmailList(trainSpam, spamEmails, 1);
 	createEmailList(trainHam, hamEmails, -1);
-	trainWeightsPerceptron();
+	trainWeightsLogReg();
+	//regularizeWeights(.0001);
 
-	createEmailList(testSpam, testEmails, 1);
-	createEmailList(testHam, testEmails, -1);
-	testPerceptron();
+	for(Word wrd : trainingData){
+		System.out.println(wrd.weight);
+	}
+
+	//createEmailList(trainSpam, spamEmails, 1);
+	//createEmailList(trainHam, hamEmails, -1);
+	//trainWeightsPerceptron();
+
+	//for(Word wrd : trainingData){
+	//	System.out.println(wrd.weight);
+	//}
+
+	//createEmailList(testSpam, testEmails, 1);
+	//createEmailList(testHam, testEmails, -1);
+	//testPerceptron();
     }
 
     public void testNaiveBayes(){
@@ -87,26 +101,131 @@ public class Main{
 	double s = (double) testEmails.size();
 	double accuracy = count/s;
 	System.out.println("\nPERCEPTRON ACCURACY = " + accuracy);
+	}
+
+	//Calculates P[y = (1 or -1) | Xi]; //Xi is an email
+	public double condProb(Email email, int classification){
+        if(classification == -1){      // SPAM
+            double sumW0 = 0.0;
+            for(int i = 0; i < email.text.size(); i++)
+				sumW0 += (trainingData.get(email.index.get(i)).weight) * ((double)email.counts.get(i)); 
+			//System.out.println("sumW0 = " + sumW0);
+            return (((double)1) / ((double)1 + Math.exp(sumW0)));
+        }
+        else if(classification == 1){ // HAM
+            double sumW1 = 0.0;
+            for(int i = 0; i < email.text.size(); i++){
+				sumW1 += Math.log(((trainingData.get(email.index.get(i)).weight) * ((double)email.counts.get(i))));
+			}
+
+			//System.out.println("sumW1 = " + sumW1);
+			//System.out.println("Numerator = " + (Math.exp(sumW1)));
+			//System.out.println("Denominator = " + ((double)1 + Math.exp(sumW1)));
+			//System.exit(-1);
+			//ln(1 + e^n) = ~n // Can this help?
+            return ((Math.exp(sumW1)) / (((double)1 + Math.exp(sumW1))));
+        }
+        return 0;
     }
+	
+	public void trainWeightsLogReg(){
+		int MAXITERS = 5;
+		double lambda = 0.1;
+		double stepSize = .01;
+		ArrayList<Email> eList = new ArrayList<Email>(); // list of all emails
+		//altetween spam and ham emailsernating b
+		int k = 0;
+		while(k < spamEmails.size()){
+			eList.add(spamEmails.get(k));
+			if (k < hamEmails.size())
+				eList.add(hamEmails.get(k));
+			k++;
+		}
+		//If there were more hamEmails than spamEmails...
+		if (k < hamEmails.size()){
+			while(k < hamEmails.size()){
+				eList.add(hamEmails.get(k));
+				k++;
+			}	
+		}
+
+		//Have checked and can confirm all ArrayLists in each email in eList are the same length
+
+		//System.out.println(trainingData.get(3).toString());
+		//System.exit(-1);
+
+		//Run for the numner of iterations
+		for(int counter = 0; counter < MAXITERS; counter++){
+			System.out.println("Iteration " + counter);
+			//For each weight(weights are associated with the corresponding word in the wordclass)
+			for(int w = 0; w < trainingData.size(); w++){ //Therefore loop through all unique words
+				double sum = 0.0;
+
+				for(int i = 0; i < eList.size(); i++){ // Loops through all emails
+					//int globalIndex = findGlobalIndex(eList.get(i), trainingData.get(w).toString());
+					int localIndex = findLocalIndex(eList.get(i), trainingData.get(w).toString());
+					//System.out.println("Word: [" + trainingData.get(w).toString() + "] | Indexed Email " + i + " at index " + index);
+
+					if(localIndex > 0)//If the word is in the email
+						sum += ((double)eList.get(i).counts.get(localIndex)) * (eList.get(i).classification - condProb(eList.get(i), -1));
+				}
+				trainingData.get(w).weight += stepSize * (sum);
+			}
+		}
+	}
+
+	public void regularizeWeights(double lambda){
+		for(Word wrd : trainingData){
+			wrd.weight -= (lambda/2)*(Math.pow(sumWeights(),2));
+		}
+	}
+
+	public double sumWeights(){
+		double sum = 0.0;
+		for(Word word : trainingData)
+			sum += word.weight;
+		return sum;
+	}
+
+	//Finds the index of the word INSIDE the email
+	public int findLocalIndex(Email email, String word){
+		for(int j = 0; j < email.text.size(); j++){
+			if(email.text.get(j).equals(word)){
+				//System.out.println(j);
+				return j;
+			}
+		}
+		return -1;
+	}
+	//Finds the index of the word in the total words ArrayList
+	public int findGlobalIndex(Email email, String word){
+		for(int j = 0; j < email.text.size(); j++){
+			if(email.text.get(j).equals(word)){
+				//System.out.println(j);
+				return email.index.get(j);
+			}
+		}
+		return -1;
+	}
 
     public void trainWeightsPerceptron(){
-	int countCorrect = 0;
-	ArrayList<Email> eList = new ArrayList<Email>(); //list of all emails
+		int countCorrect = 0;
+		ArrayList<Email> eList = new ArrayList<Email>(); //list of all emails
 
-	//alternating between spam and ham emails
-	int k = 0;
-	for(; k < spamEmails.size(); k++){
-		eList.add(spamEmails.get(k));
-		if (k < hamEmails.size())
-			eList.add(hamEmails.get(k));
-	}
-	if (k < hamEmails.size()){
-		for(; k<hamEmails.size(); k++)
-			eList.add(hamEmails.get(k));
-	}
+		//altetween spam and ham emailsernating b
+		int k = 0;
+		for(; k < spamEmails.size(); k++){
+			eList.add(spamEmails.get(k));
+			if (k < hamEmails.size())
+				eList.add(hamEmails.get(k));
+		}
+		if (k < hamEmails.size()){
+			for(; k<hamEmails.size(); k++)
+				eList.add(hamEmails.get(k));
+		}
 
-	boolean converge = false;	
-	while(!converge){
+		boolean converge = false;	
+		while(!converge){
 		for(Email e : eList){
 			int res = currentPrediction(e); //get prediction based on current weights
 			if (res != e.classification){ //if not correct, update weights
@@ -119,8 +238,7 @@ public class Main{
 						w.weight = w.weight + (e.classification - res)*x;
 					}
 				}
-			}
-			
+			}	
 		} 
 		countCorrect = 0; //number of correctly classified emails based on current weights
 		for(Email e : eList){
@@ -213,16 +331,16 @@ public class Main{
 
     }
 
-    
+    //Convert each file in a directory to an email, and add it to the passed in ArrayList<Email> 
     public void createEmailList(File directory, ArrayList<Email> elist, int c){
-	File[] fileNames = directory.listFiles();
-	for(File file : fileNames){
-            try {
-                String str[] = concatFile(file.getPath()).split("\\s+");
-		elist.add(new Email(str, trainingData, c));
-	    } catch (Exception e) {
+		File[] fileNames = directory.listFiles();
+		for(File file : fileNames){
+        	try {
+        	    String str[] = concatFile(file.getPath()).split("\\s+");
+				elist.add(new Email(str, trainingData, c));
+	    	} catch (Exception e) {
                 e.printStackTrace();
-            }
+        	}
         }
     }
 
