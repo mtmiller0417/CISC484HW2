@@ -6,11 +6,14 @@ public class Word implements Comparable<Word>{
     int hamCount = 0;
     double spamProb;
     double hamProb;
+    boolean isSpam = false, isHam = false;
+    double weight = 0; //Used as weight for classifying as ham
+    int weightIndex;
 
     public Word(String word, int spam, int ham){
         this.word = word;
-	this.spamCount += spam;
-	this.hamCount += ham;
+	    this.spamCount += spam;
+	    this.hamCount += ham;
     }
 
     public void incrementS(){
