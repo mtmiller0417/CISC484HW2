@@ -53,7 +53,7 @@ public class Main{
 	createEmailList(trainSpam, spamEmails, 1);
 	createEmailList(trainHam, hamEmails, -1);
 	trainWeightsLogReg();
-	//regularizeWeights(.0001);
+	regularizeWeights(.05);
 
 	for(Word wrd : trainingData){
 		System.out.println(wrd.weight);
@@ -130,7 +130,7 @@ public class Main{
 	
 	public void trainWeightsLogReg(){
 		int MAXITERS = 5;
-		double lambda = 0.1;
+		double lambda = .05;
 		double stepSize = .01;
 		ArrayList<Email> eList = new ArrayList<Email>(); // list of all emails
 		//altetween spam and ham emailsernating b
@@ -169,14 +169,14 @@ public class Main{
 					if(localIndex > 0)//If the word is in the email
 						sum += ((double)eList.get(i).counts.get(localIndex)) * (eList.get(i).classification - condProb(eList.get(i), -1));
 				}
-				trainingData.get(w).weight += stepSize * (sum);
+				trainingData.get(w).weight += (stepSize * (sum));// - (lambda/2)*(Math.pow(trainingData.get(w).weight,2));
 			}
 		}
 	}
 
 	public void regularizeWeights(double lambda){
 		for(Word wrd : trainingData){
-			wrd.weight -= (lambda/2)*(Math.pow(sumWeights(),2));
+			wrd.weight -= (lambda/2)*(Math.pow(wrd.weight,2));
 		}
 	}
 
