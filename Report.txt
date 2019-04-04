@@ -14,6 +14,14 @@ Accuracy on spam test set =  96.675%
 Accuracy on ham test set = 57.471%
 Accuracy on full test set = 78.214%
 
+LOGISTIC REGRESSION
+MAXITERATIONS = 5
+Lambda = 0.01
+Step-Size = 0.01
+Dataset 1 accuracy on test set = 73.013%
+Dataset 2 accuracy on test set = 68.202%
+Dataset 3 accuracy on test set = 72.007%
+
 PERCEPTRON //weights are initialized to random values so accuracy may vary slightly
 Dataset 1 accuracy on test set = 90.795%
 Dataset 2 accuracy on test set = 93.158%
