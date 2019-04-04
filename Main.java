@@ -52,95 +52,120 @@ public class Main{
 	//Read all words in spam and ham folders respectively and make them into one big ArrayList<Word> each
     loopDir(trainSpam, trainingData, 1);
 	loopDir(trainHam, trainingData, -1);
+	loopDir(testSpam, spamTesting, 1);
+	loopDir(testHam, hamTesting, -1);
 
 	//Using c = 1 for spam and c = -1 for ham
-	//trainMultinomial(trainingData);
-	//testNaiveBayes();	
+	trainMultinomial(trainingData);
+	testNaiveBayes();	
 
 	createEmailList(trainSpam, spamEmails, 1);
 	createEmailList(trainHam, hamEmails, -1);
 	trainWeightsLogReg();
-	regularizeWeights(.05);
 
-	for(Word wrd : trainingData){
-		System.out.println(wrd.weight);
+	createEmailList(testSpam, testEmails, 1);
+	createEmailList(testHam, testEmails, -1);
+	testLogReg();
+
+	createEmailList(trainSpam, spamEmails, 1);
+	createEmailList(trainHam, hamEmails, -1);
+	trainWeightsPerceptron();
+
+	createEmailList(testSpam, testEmails, 1);
+	createEmailList(testHam, testEmails, -1);
+	testPerceptron();
+	}
+	
+	public void testLogReg(){
+		int correct = 0;
+		for(Email email : testEmails){
+			if(classifyLogReg(email) == email.classification)
+				correct++;
+		}
+		System.out.println("Accuracy : " + ((double)correct) / ((double)testEmails.size()));
 	}
 
-	//createEmailList(trainSpam, spamEmails, 1);
-	//createEmailList(trainHam, hamEmails, -1);
-	//trainWeightsPerceptron();
-
-	//for(Word wrd : trainingData){
-	//	System.out.println(wrd.weight);
-	//}
-
-	//createEmailList(testSpam, testEmails, 1);
-	//createEmailList(testHam, testEmails, -1);
-	//testPerceptron();
-    }
-
     public void testNaiveBayes(){
-	System.out.println("\nMULTINOMIAL NAIVE BAYES");
-	int correctSpam = testNB(testSpam, 1);
-	double ts = (double) testSpam.listFiles().length;
-	double spamAccuracy = correctSpam/ts;
-	System.out.println("Accuracy on Spam Test Set = " + spamAccuracy);
+		System.out.println("\nMULTINOMIAL NAIVE BAYES");
+		int correctSpam = testNB(testSpam, 1);
+		double ts = (double) testSpam.listFiles().length;
+		double spamAccuracy = correctSpam/ts;
+		System.out.println("Accuracy on Spam Test Set = " + spamAccuracy);
 	
-	int correctHam = testNB(testHam, -1);
-	double th = (double) testHam.listFiles().length;
-	double hamAccuracy = correctHam/th;
-	System.out.println("Accuracy on Ham Test Set = " + hamAccuracy);
+		int correctHam = testNB(testHam, -1);
+		double th = (double) testHam.listFiles().length;
+		double hamAccuracy = correctHam/th;
+		System.out.println("Accuracy on Ham Test Set = " + hamAccuracy);
 
-	int totalDocs = testSpam.listFiles().length + testHam.listFiles().length;
-	double td = (double) totalDocs;
-	double accuracy = (correctHam + correctSpam)/td;
-	System.out.println("Accuracy = " + accuracy);
-	System.out.println();
+		int totalDocs = testSpam.listFiles().length + testHam.listFiles().length;
+		double td = (double) totalDocs;
+		double accuracy = (correctHam + correctSpam)/td;
+		System.out.println("Accuracy = " + accuracy);
+		System.out.println();
     }
 
     public void testPerceptron(){
-	int count = 0;
-	for(Email e: testEmails){
-		int res = currentPrediction(e);
-		if (res == e.classification)
-			count++;
-	}
-	double s = (double) testEmails.size();
-	double accuracy = count/s;
-	System.out.println("\nPERCEPTRON ACCURACY = " + accuracy);
-	}
+		int count = 0;
+		for(Email e: testEmails){
+			int res = currentPrediction(e);
+			if (res == e.classification)
+				count++;
+		}
+		double s = (double) testEmails.size();
+		double accuracy = count/s;
+		System.out.println("\nPERCEPTRON ACCURACY = " + accuracy);
+		}
 
 	//Calculates P[y = (1 or -1) | Xi]; //Xi is an email
-	public double condProb(Email email, int classification){
-        if(classification == -1){      // SPAM
+	public double condProb(Email email, ArrayList<Word> data, int classification){
+        if(classification == 1){      // SPAM
             double sumW0 = 0.0;
-            for(int i = 0; i < email.text.size(); i++)
-				sumW0 += (trainingData.get(email.index.get(i)).weight) * ((double)email.counts.get(i)); 
-			//System.out.println("sumW0 = " + sumW0);
+            for(int i = 0; i < email.text.size(); i++){
+				//System.out.println("i = " + i);
+				int index = email.index.get(i);
+				if(index == -1)//Does not belong to the list
+					sumW0 += 0;
+				else
+					sumW0 += (data.get(index).weight) * ((double)email.counts.get(i)); 
+			}
             return (((double)1) / ((double)1 + Math.exp(sumW0)));
         }
-        else if(classification == 1){ // HAM
+        else if(classification == -1){ // HAM
             double sumW1 = 0.0;
             for(int i = 0; i < email.text.size(); i++){
-				sumW1 += ((trainingData.get(email.index.get(i)).weight) * ((double)email.counts.get(i)));
-				if(sumW1 != 0.0)
-					sumW1 = Math.log(sumW1);
+				int index = email.index.get(i);
+				if(index == -1)//Does not belong to the list
+					sumW1 += 0;
+				else
+					sumW1 += ((data.get(email.index.get(i)).weight) * ((double)email.counts.get(i)));
 			}
-
-			//System.out.println("sumW1 = " + sumW1);
-			//System.out.println("Numerator = " + (Math.exp(sumW1)));
-			//System.out.println("Denominator = " + ((double)1 + Math.exp(sumW1)));
-			//System.exit(-1);
-			//ln(1 + e^n) = ~n // Can this help?
             return ((Math.exp(sumW1)) / (((double)1 + Math.exp(sumW1))));
-        }
+		}
         return 0;
-    }
+	}
+	
+	public int classifyLogReg(Email email){
+		double sum = 0.0;
+		for(int x = 0; x < email.text.size(); x++){
+			if(email.index.get(x) >= 0)
+				sum += trainingData.get(email.index.get(x)).weight * email.counts.get(x);
+		}	
+		if(sum >= 0)
+			return 1;
+		return -1;
+	}
 	
 	public void trainWeightsLogReg(){
+		System.out.println("\nLOGISTIC REGRESSION");
+
+		//Make all weights 0
+		for(Word wrd : trainingData){
+			wrd.weight = 0;
+		}
+
 		int MAXITERS = 5;
-		double lambda = .05;
-		double stepSize = .01;
+		double lambda = 0.01;
+		double stepSize = 0.01;
 		ArrayList<Email> eList = new ArrayList<Email>(); // list of all emails
 		//altetween spam and ham emailsernating b
 		int k = 0;
@@ -158,34 +183,21 @@ public class Main{
 			}	
 		}
 
-		//Have checked and can confirm all ArrayLists in each email in eList are the same length
-
-		//System.out.println(trainingData.get(3).toString());
-		//System.exit(-1);
-
 		//Run for the numner of iterations
 		for(int counter = 0; counter < MAXITERS; counter++){
 			System.out.println("Iteration " + counter);
 			//For each weight(weights are associated with the corresponding word in the wordclass)
 			for(int w = 0; w < trainingData.size(); w++){ //Therefore loop through all unique words
 				double sum = 0.0;
-
 				for(int i = 0; i < eList.size(); i++){ // Loops through all emails
-					//int globalIndex = findGlobalIndex(eList.get(i), trainingData.get(w).toString());
 					int localIndex = findLocalIndex(eList.get(i), trainingData.get(w).toString());
-					//System.out.println("Word: [" + trainingData.get(w).toString() + "] | Indexed Email " + i + " at index " + index);
 
 					if(localIndex > 0)//If the word is in the email
-						sum += ((double)eList.get(i).counts.get(localIndex)) * (eList.get(i).classification - condProb(eList.get(i), 1));
+						sum += (((double)eList.get(i).counts.get(localIndex)) * (eList.get(i).classification - condProb(eList.get(i), trainingData, 1))) 
+							- (lambda * trainingData.get(w).weight);
 				}
-				trainingData.get(w).weight += (stepSize * (sum));// - (lambda/2)*(Math.pow(trainingData.get(w).weight,2));
+				trainingData.get(w).weight += (stepSize * (sum)) - (stepSize * lambda * trainingData.get(w).weight);
 			}
-		}
-	}
-
-	public void regularizeWeights(double lambda){
-		for(Word wrd : trainingData){
-			wrd.weight -= (lambda/2)*(Math.pow(wrd.weight,2));
 		}
 	}
 
@@ -262,82 +274,81 @@ public class Main{
     }
 
     public int currentPrediction(Email e){
-	double sum = 0;
-	for(int i = 0; i < e.text.size(); i++){
-		int x = e.counts.get(i);
-		int ind = e.index.get(i);
-		double wi;
-		if (ind != -1) //only -1 if it doesn't occur in training set
-			wi = trainingData.get(ind).weight;
+		double sum = 0;
+		for(int i = 0; i < e.text.size(); i++){
+			int x = e.counts.get(i);
+			int ind = e.index.get(i);
+			double wi;
+			if (ind != -1) //only -1 if it doesn't occur in training set
+				wi = trainingData.get(ind).weight;
+			else
+				wi = 0;
+			sum = sum + (x*wi);
+		}
+		sum += w0;
+		int res;
+		if (sum > 0)
+			res = 1; //classify as spam
 		else
-			wi = 0;
-		sum = sum + (x*wi);
-	}
-	sum += w0;
-	int res;
-	if (sum > 0)
-		res = 1; //classify as spam
-	else
-		res = -1;
-	return res;
+			res = -1;
+		return res;
     }
 
     public void trainMultinomial(ArrayList<Word> data){
-	int totalSpamCount = data.size(); //because of Laplace smoothing
-	int totalHamCount = data.size();
-	for(Word w : data){
-		totalSpamCount = totalSpamCount + w.spamCount;
-		totalHamCount = totalHamCount + w.hamCount;
-	}
+		int totalSpamCount = data.size(); //because of Laplace smoothing
+		int totalHamCount = data.size();
+		for(Word w : data){
+			totalSpamCount = totalSpamCount + w.spamCount;
+			totalHamCount = totalHamCount + w.hamCount;
+		}
 
-	double tsc = (double) totalSpamCount;
-	double thc = (double) totalHamCount;
-	for(Word w : data){
-		w.spamProb = (w.spamCount + 1)/tsc;
-		w.hamProb = (w.hamCount + 1)/thc;
-	}
+		double tsc = (double) totalSpamCount;
+		double thc = (double) totalHamCount;
+		for(Word w : data){
+			w.spamProb = (w.spamCount + 1)/tsc;
+			w.hamProb = (w.hamCount + 1)/thc;
+		}
     }
 
     public int testNB(File directory, int c){ // c is the class the data belongs to
-	File[] fileNames = directory.listFiles();
-	int correctlyClassified = 0;
-	double priorS = Math.log(numtrSpamDocs) - Math.log(numtrDocs);
-	double priorH = Math.log(numtrHamDocs) - Math.log(numtrDocs);
-	for(File file : fileNames){
+		File[] fileNames = directory.listFiles();
+		int correctlyClassified = 0;
+		double priorS = Math.log(numtrSpamDocs) - Math.log(numtrDocs);
+		double priorH = Math.log(numtrHamDocs) - Math.log(numtrDocs);
+		for(File file : fileNames){
             try {
                 String str[] = concatFile(file.getPath()).split("\\s+");
-		int res = applyMultinomialNB(str, trainingData, priorS, priorH);
-		if (res == c)
-			correctlyClassified++;
-	    } catch (Exception e) {
+				int res = applyMultinomialNB(str, trainingData, priorS, priorH);
+				if (res == c)
+					correctlyClassified++;
+	    	} catch (Exception e) {
                 e.printStackTrace();
             }
-	}
-	return correctlyClassified;
+		}
+		return correctlyClassified;
     }
 
     public int applyMultinomialNB(String str[], ArrayList<Word> trainData, double priorS, double priorH) {
-	double scoreSpam = priorS;
-	double scoreHam = priorH;
+		double scoreSpam = priorS;
+		double scoreHam = priorH;
 
-	for(String s : str){
-		 boolean flag = false;
-        	 for(Word w : trainData)
-            		if(w.toString().equals(s)){
-                		flag = true;
-				scoreSpam += Math.log(w.spamProb);
-				scoreHam += Math.log(w.hamProb);
-			}
-		 if (!flag){
-			//do some smoothing idk
-		 }
-	}
+		for(String s : str){
+			 boolean flag = false;
+        	for(Word w : trainData)
+            	if(w.toString().equals(s)){
+            		flag = true;
+					scoreSpam += Math.log(w.spamProb);
+					scoreHam += Math.log(w.hamProb);
+				}
+		 	if (!flag){
+				//do some smoothing idk
+		 	}
+		}
 	
-	if (scoreSpam > scoreHam)
-		return 1; 
-	else 
-		return -1;
-
+		if (scoreSpam > scoreHam)
+			return 1; 
+		else 
+			return -1;
     }
 
     //Convert each file in a directory to an email, and add it to the passed in ArrayList<Email> 
@@ -397,11 +408,11 @@ public class Main{
         //If the wors was not found in the list, add it to the list
         if(!flag) {
            
-	    if (c == 1)
-                	 wordList.add(new Word(word, 1, 0));
-	    else if (c == -1)
-			wordList.add(new Word(word, 0, 1));
-	}
+	    	if (c == 1)
+              	 wordList.add(new Word(word, 1, 0));
+	    	else if (c == -1)
+				wordList.add(new Word(word, 0, 1));
+		}
         return flag;
     }
 }
